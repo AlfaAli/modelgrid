@@ -4,7 +4,7 @@ import pyproj
 import numpy
 import logging
 import re 
-import _grid_confmap
+import confmap
 
 
 # Set up logger
@@ -315,7 +315,7 @@ class ConformalGrid(Grid) :
       self._Nx = ires
       self._Ny = jres
 
-      self._conformal_mapping = _grid_confmap.ConformalMapping(
+      self._conformal_mapping = confmap.ConformalMapping(
          lat_a,lon_a,lat_b,lon_b,
          wlim,elim,ires,
          slim,nlim,jres,
