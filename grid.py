@@ -19,7 +19,7 @@ logger.addHandler(ch)
 logger.propagate=False # Dont propagate to parent in hierarchy (determined by "." in __name__)
 
 class Grid(object) :
-      """ Class inherited by others . not meant to be instantiated"""
+   """ Class inherited by others . not meant to be instantiated"""
    def _grid(self,deltax,deltay,extended=False) : 
       raise NotImplementedError,""
 
