@@ -65,13 +65,21 @@ _epsil=1.0E-9
 
 
 class ConformalMapping(object) :
-
+   """ Initializes a conformal mapping, described in XXXX"""
 
    def __init__(self,lat_a,lon_a,lat_b,lon_b,
          wlim,elim,ires,
          slim,nlim,jres,
          mercator,
          mercfac,lold) :
+      """Constructor: arguments: 
+         lat_a, lon_a     : position of pole A in geo coordinates
+         lat_b, lon_b     : position of pole B in geo coordinates
+         wlim, elim, ires : western,  eastern  limits in new coords and number of points in 1st dim
+         slim, nlim, jres : southern, northern limits in new coords and number of points in 2nd dim
+         mercator         : TODO
+         mercfac, lold    : TODO
+      """
 
 
       self._lat_a = lat_a
