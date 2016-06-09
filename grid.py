@@ -436,7 +436,7 @@ class Proj4Grid(Grid) :
    
 
    def proj_is_latlong(self) :
-      return self.proj_is_latlong() 
+      return self._proj.is_latlong() 
 
 
    def write_my_projection_info(self) :
