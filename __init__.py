@@ -1,3 +1,3 @@
-from grid    import Proj4Grid, ConformalGrid
-from confmap import ConformalMapping
+from _grid    import Proj4Grid, ConformalGrid
+from _confmap import ConformalMapping
 
