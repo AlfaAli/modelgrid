@@ -30,13 +30,25 @@ class Grid(object) :
 
    def p_azimuth(self) :
       plon,plat = self.pgrid(extended=True)
-      return fwd_azimuth( plon[1:-1,1:-1],plat[1:-1,1:-1], 
-                          plon[1:-1,2:]   ,plat[1:-1,2:])
+      #return fwd_azimuth( plon[1:-1,1:-1],plat[1:-1,1:-1], 
+
+      tmp = fwd_azimuth( plon[1:-1,1:-1],plat[1:-1,1:-1],plon[1:-1,2:],plat[1:-1,2:])
+
+      # Compass angle -> angle rel lat line
+      tmp = numpy.radians(90-tmp)
+
+      # Put in range [-pi,pi)
+      tmp = numpy.where(tmp >= numpy.pi,tmp-2*numpy.pi,tmp) # Safest option
+      tmp = numpy.where(tmp < -numpy.pi,tmp+2*numpy.pi,tmp) # Safest option
+      #mult = max(-tmp.min()/numpy.pi,1)
+      #mult = 2*(mult/2) + 1                                # use any odd number as long as tmp+mult*numpy.pi > 0...
+      #tmp = numpy.fmod(tmp+9*numpy.pi,2*numpy.pi)-numpy.pi # use any odd number as long as tmp+mult*numpy.pi > 0...
+      return tmp
       
    def corio(self) :
       qlon,qlat = self.qgrid()
-      return numpy.radians(qlat) * 4. * numpy.pi / 86164.0 # Sidereal day
-      return 
+      #return numpy.sin(numpy.radians(qlat)) * 4. * numpy.pi / 86400.0
+      return numpy.sin(numpy.radians(qlat)) * 4. * numpy.pi / 86164.0 # Sidereal day
 
 
    def aspect_ratio(self) :
@@ -45,17 +57,6 @@ class Grid(object) :
       asp = numpy.where(scpy==0.,99.0,scpx/scpy)
       return asp
    
-
-   def cice_ugrid(self,extended=False) :
-      # TODO: Check out why its like this ....
-      #return self._grid(+0.5*self._dx,+0.5*self._dy,extended)
-      return self._grid(-0.5*self._dx,-0.5*self._dy,extended)
-      
-   @property
-   def Nx(self) : return self._Nx
-
-   @property
-   def Ny(self) : return self._Ny
 
    def plotgrid(self,fac=1.) :
       return plotgrid(*self.pgrid(),width=self.width*fac,height=self.height*fac)
@@ -303,9 +304,16 @@ class Grid(object) :
       else :
          return self._Ny*self.dy
 
+      
+   @property
+   def Nx(self) : return self._Nx
+
+   @property
+   def Ny(self) : return self._Ny
 
 class ConformalGrid(Grid) :
    """ Grid generator based on Bentsen et al conformal mapping """
+
    def __init__(self,
          lat_a,lon_a,lat_b,lon_b,
          wlim,elim,ires,
@@ -324,9 +332,79 @@ class ConformalGrid(Grid) :
          mercfac,lold) 
 
 
+   @classmethod
+   def init_from_file(cls,filename) :
+      fid=open(filename,"r")
+
+      logger.debug("Contents of %s:\n%s"%(filename,open(filename,"r").read()))
+
+      #-40.0 140.0     ! Position of pole N (lattitude, longitude):
+      tmp=fid.readline().split("!")[0].strip().split()
+      lat_a,lon_a = [float(elem) for elem in tmp ]
+
+      #-50.0 140.0      ! Position of pole S (lattitude, longitude):
+      tmp=fid.readline().split("!")[0].strip().split()
+      lat_b,lon_b = [float(elem) for elem in tmp ]
+
+      #178.2 181.42 800 ! Longitude interval West lon,   East lon, idim
+      tmp=fid.readline().split("!")[0].strip().split()
+      wlim,elim = [float(elem) for elem in tmp[0:2]]
+      ires      = int(tmp[2])
+
+      # 0.0  80.0 760 ! Lattitude interval south limit, north limit, jdim
+      tmp=fid.readline().split("!")[0].strip().split()
+      slim,nlim = [float(elem) for elem in tmp[0:2]]
+      jres      = int(tmp[2])
+
+      #.true.            ! Generate topography
+      fid.readline() # Not needed for grid generation
+
+      #.true.            ! dump teclatlon.dat
+      fid.readline() # Not needed for grid generation
+
+      #.true.            ! dump micom latlon.dat
+      fid.readline() # Not needed for grid generation
+
+      #.true.            ! mercator grid (true, false)
+      tmp=fid.readline().split("!")[0].strip().split()
+      if tmp[0] == ".true." : 
+         mercator=True
+      elif tmp[0] == ".false." : 
+         mercator=False
+      else :
+         raise ValueError,"Unable to safely resolve value of mercator flag for confmap"
+
+      #   0.365 .false.   ! merc fac
+      tmp=fid.readline().split("!")[0].strip().split()
+      mercfac = float(tmp[0])
+      if tmp[1] == ".true." : 
+         lold=True
+      elif tmp[1] == ".false." : 
+         lold=False
+      else :
+         raise ValueError,"Unable to safely resolve value of lold flag for confmap"
+
+      #.false.           ! Smoothing, Shapiro filter
+      fid.readline() # Not needed for grid generation
+
+      # 8   2            ! Order of Shapiro filter,  number of passes
+      fid.readline() # Not needed for grid generation
+
+      fid.close()
+
+      return cls(lat_a,lon_a,lat_b,lon_b,
+         wlim,elim,ires,
+         slim,nlim,jres,
+         mercator,
+         mercfac,lold) 
+
+
+
+
 
       
    def _grid(self,deltax,deltay,extended=False) : 
+      """ TODO: delta x in grid distance  - make sure same across subclasses"""
       tmp= self._conformal_mapping.get_grid(shifti=deltax,shiftj=deltay,extended=extended)
 
       # Order reversed
@@ -339,7 +417,11 @@ class ConformalGrid(Grid) :
    def vgrid(self,extended=False) : return self._grid(0.,-0.5,extended)
    def qgrid(self,extended=False) : return self._grid(-0.5,-0.5,extended)
    
-   
+
+   def cice_ugrid(self,extended=False) :
+      # TODO: Check out why its like this ....
+      #return self._grid(+0.5*self._dx,+0.5*self._dy,extended)
+      return self._grid(-0.5,-0.5,extended)
 
    @property
    def dx(self) : 
@@ -410,6 +492,7 @@ class Proj4Grid(Grid) :
       #   raise ValueError,msg
 
    def _grid(self,deltax,deltay,extended=False) : 
+      """ TODO: delta x in ACTUAL distance  - make sure same across subclasses"""
       if extended :
          tmp = (self._X+deltax,self._Y+deltay)
          #return self._proj(self._X+deltax,self._Y+deltay,inverse=True)
@@ -427,13 +510,11 @@ class Proj4Grid(Grid) :
    def ugrid(self,extended=False) : return self._grid(-0.5*self._dx,0.,extended)
    def vgrid(self,extended=False) : return self._grid(0.,-0.5*self._dy,extended)
    def qgrid(self,extended=False) : return self._grid(-0.5*self._dx,-0.5*self._dy,extended)
-   
-   @property
-   def dx(self) : return self._dx
 
-   @property
-   def dy(self) : return self._dy
-   
+   def cice_ugrid(self,extended=False) :
+      # TODO: Check out why its like this ....
+      #return self._grid(+0.5*self._dx,+0.5*self._dy,extended)
+      return self._grid(-0.5*self._dx,-0.5*self._dy,extended)
 
    def proj_is_latlong(self) :
       return self._proj.is_latlong() 
@@ -550,7 +631,12 @@ class Proj4Grid(Grid) :
    def raster(self) :
       pass
 
+   @property
+   def dx(self) : return self._dx
 
+   @property
+   def dy(self) : return self._dy
+   
 
 
 

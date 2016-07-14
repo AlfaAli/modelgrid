@@ -254,10 +254,12 @@ class ConformalMapping(object) :
    def get_grid_point(self,i,j,shifti=0.,shiftj=0.) :
       #! Used when creating a grid
       #! Retrieves  lon/lat for grid index (i,j) at P points
-      lon_n=self._wlim+(i-1)*self._di+shifti
-      lat_n=self._slim+(j-1)*self._dj+shiftj
+      #lon_n=self._wlim+(i-1)*self._di+shifti
+      #lat_n=self._slim+(j-1)*self._dj+shiftj
+      lon_n=self._wlim+(i-1+shifti)*self._di
+      lat_n=self._slim+(j-1+shiftj)*self._dj
       if self._mercator :
-         lat_n=self._slim+(j-1)*self._dm+shiftj
+         lat_n=self._slim+(j-1+shiftj)*self._dm
          lat_n=(2.*numpy.arctan(numpy.exp((lat_n*_rad)))-_pi_1*.5)*_deg
       return self.newtoold(lat_n,lon_n)
 
