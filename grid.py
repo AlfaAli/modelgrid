@@ -421,7 +421,8 @@ class ConformalGrid(Grid) :
    def cice_ugrid(self,extended=False) :
       # TODO: Check out why its like this ....
       #return self._grid(+0.5*self._dx,+0.5*self._dy,extended)
-      return self._grid(-0.5,-0.5,extended)
+      #return self._grid(-0.5,-0.5,extended)
+      return self._grid(0.5,0.5,extended)
 
    @property
    def dx(self) : 
@@ -514,6 +515,7 @@ class Proj4Grid(Grid) :
    def cice_ugrid(self,extended=False) :
       # TODO: Check out why its like this ....
       #return self._grid(+0.5*self._dx,+0.5*self._dy,extended)
+      raise NotImplementedEerror,"check cice_ugrid return values"
       return self._grid(-0.5*self._dx,-0.5*self._dy,extended)
 
    def proj_is_latlong(self) :
