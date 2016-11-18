@@ -436,6 +436,9 @@ class ConformalGrid(Grid) :
    def proj_is_latlong(self) :
       return False
 
+   @property
+   def mapping(self) : return self._conformal_mapping
+
 
 class Proj4Grid(Grid) :
    """ Grid generator based on proj4 projections """
